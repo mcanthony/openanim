@@ -2,7 +2,9 @@
 
 namespace openanim {
 
-Transform::Transform() {
+Transform::Transform() :
+	// vector has to be initialised explicitly, but quaternion doesn't
+	translation(0,0,0) {
 }
 
 Transform::Transform(const Imath::V3f& tr) : translation(tr) {
@@ -23,10 +25,18 @@ const Imath::M44f Transform::toMatrix44() const {
 }
 
 const Transform Transform::operator * (const Transform& t) const {
-	return *this;
+	return Transform(
+		// what a pretty inconsistency in OpenEXR
+		t.rotation * rotation,
+		translation*t.rotation + t.translation
+	);
 }
 
 Transform& Transform::operator *= (const Transform& t) {
+	// what a pretty inconsistency in OpenEXR
+	rotation = t.rotation * rotation;
+	translation = translation*t.rotation + t.translation;
+
 	return *this;
 }
 
