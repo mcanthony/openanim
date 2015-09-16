@@ -8,60 +8,7 @@ using std::endl;
 
 namespace openanim {
 
-Hierarchy::Children::Children() : m_begin(0), m_end(0), m_joints(NULL) {
-}
-
-Hierarchy::Children::Children(std::size_t begin, std::size_t end, std::vector<Joint>& joints) : m_begin(begin), m_end(end), m_joints(&joints) {
-}
-
-Hierarchy::Children::const_iterator Hierarchy::Children::begin() const {
-	assert(valid());
-	return m_joints->begin() + m_begin;
-}
-
-Hierarchy::Children::const_iterator Hierarchy::Children::end() const {
-	assert(valid());
-	return m_joints->begin() + m_end;
-}
-
-Hierarchy::Children::iterator Hierarchy::Children::begin() {
-	assert(valid());
-	return m_joints->begin() + m_begin;
-}
-
-Hierarchy::Children::iterator Hierarchy::Children::end() {
-	assert(valid());
-	return m_joints->end() + m_end;
-}
-
-bool Hierarchy::Children::valid() const {
-	return m_joints != NULL;
-}
-
-bool Hierarchy::Children::empty() const {
-	return (m_joints == NULL) || (m_begin == m_end);
-}
-
-std::size_t Hierarchy::Children::size() const {
-	assert(valid());
-	return m_end - m_begin;
-}
-
-Hierarchy::Joint& Hierarchy::Children::operator[](std::size_t index) {
-	assert(valid());
-	assert(index < m_joints->size());
-	return (*m_joints)[index];
-}
-
-const Hierarchy::Joint& Hierarchy::Children::operator[](std::size_t index) const {
-	assert(valid());
-	assert(index < m_joints->size());
-	return (*m_joints)[index];
-}
-
-////////
-
-Hierarchy::Joint::Joint(const std::string& name, int parent, const Children& chld, Hierarchy* hierarchy) : m_name(name), m_parent(parent), m_children(chld), m_hierarchy(hierarchy) {
+Hierarchy::Joint::Joint(const std::string& name, int parent, const Children<Joint, Hierarchy>& chld, Hierarchy* hierarchy) : m_name(name), m_parent(parent), m_children(chld), m_hierarchy(hierarchy) {
 }
 
 const std::string& Hierarchy::Joint::name() const {
@@ -72,11 +19,11 @@ std::size_t Hierarchy::Joint::index() const {
 	return m_hierarchy->indexOf(*this);
 }
 
-Hierarchy::Children& Hierarchy::Joint::children() {
+Children<Hierarchy::Joint, Hierarchy>& Hierarchy::Joint::children() {
 	return m_children;
 }
 
-const Hierarchy::Children& Hierarchy::Joint::children() const {
+const Children<Hierarchy::Joint, Hierarchy>& Hierarchy::Joint::children() const {
 	return m_children;
 }
 
@@ -101,28 +48,28 @@ Hierarchy::Hierarchy() {
 
 Hierarchy::Hierarchy(const Hierarchy& h) : m_joints(h.m_joints) {
 	for(auto& j : m_joints)
-		j.children().m_joints = &m_joints;
+		j.children().m_joints = this;
 }
 
 Hierarchy& Hierarchy::operator = (const Hierarchy& h) {
 	m_joints = h.m_joints;
 
 	for(auto& j : m_joints)
-		j.children().m_joints = &m_joints;
+		j.children().m_joints = this;
 
 	return *this;
 }
 
 Hierarchy::Hierarchy(Hierarchy&& h) : m_joints(std::move(h.m_joints)) {
 	for(auto& j : m_joints)
-		j.children().m_joints = &m_joints;
+		j.children().m_joints = this;
 }
 
 Hierarchy& Hierarchy::operator = (Hierarchy&& h) {
 	m_joints = std::move(h.m_joints);
 
 	for(auto& j : m_joints)
-		j.children().m_joints = &m_joints;
+		j.children().m_joints = this;
 
 	return *this;
 }
@@ -146,7 +93,7 @@ size_t Hierarchy::size() const {
 }
 
 std::size_t Hierarchy::indexOf(const Joint& j) const {
-	assert(j.children().m_joints == &m_joints);
+	assert(j.children().m_joints == this);
 
 	return (&j - &(*m_joints.begin()));
 }
@@ -154,10 +101,10 @@ std::size_t Hierarchy::indexOf(const Joint& j) const {
 void Hierarchy::addRoot(const std::string& name) {
 	if(empty())
 		// create a single root joint, with children "behind the end"
-		m_joints.push_back(Joint(name, -1, Children(1, 1, m_joints), this));
+		m_joints.push_back(Joint(name, -1, Children<Joint, Hierarchy>(1, 1, *this), this));
 	else {
 		// add a new joint at the beginning
-		m_joints.insert(m_joints.begin(), Joint(name, -1, Children(1, 2, m_joints), this));
+		m_joints.insert(m_joints.begin(), Joint(name, -1, Children<Joint, Hierarchy>(1, 2, *this), this));
 		// and update the children indices of all following joints
 		for(auto it = m_joints.begin()+1; it != m_joints.end(); ++it) {
 			++it->children().m_begin;
@@ -169,7 +116,7 @@ void Hierarchy::addRoot(const std::string& name) {
 }
 
 std::size_t Hierarchy::addChild(const Joint& j, const std::string& name) {
-	assert(j.children().m_joints == &m_joints && "input joint has to be part of the current hierarchy!");
+	assert(j.children().m_joints == this && "input joint has to be part of the current hierarchy!");
 
 	// find the joint's last child - the position we'll be inserting into
 	const std::size_t lastChild = j.children().m_end;
@@ -204,7 +151,7 @@ std::size_t Hierarchy::addChild(const Joint& j, const std::string& name) {
 		++childPos;
 
 	// and insert the joint
-	m_joints.insert(m_joints.begin() + lastChild, Joint(name, currentIndex, Children(childPos, childPos, m_joints), this));
+	m_joints.insert(m_joints.begin() + lastChild, Joint(name, currentIndex, Children<Joint, Hierarchy>(childPos, childPos, *this), this));
 
 	// and return the index of newly inserted joint
 	return lastChild;
