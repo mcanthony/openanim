@@ -75,5 +75,5 @@ set(LIBS ${LIBS} ${OPENEXR_HALF_LIBRARY} ${OPENEXR_IEX_LIBRARY})
 ###########################################################
 # BUILD
 
-include_directories(include)
+include_directories(src)
 add_subdirectory (src bin/demo)

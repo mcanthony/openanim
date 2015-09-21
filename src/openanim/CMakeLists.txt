@@ -1,6 +1,6 @@
 include_directories(./)
 
-file(GLOB sources *.cpp)
+file(GLOB_RECURSE sources *.cpp Loaders/*.cpp)
 
 add_library(openanim SHARED ${sources})
 

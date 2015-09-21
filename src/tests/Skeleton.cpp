@@ -1,5 +1,5 @@
 #define private public
-#include "openanim/Hierarchy.h"
+#include "openanim/Skeleton.h"
 #undef private
 
 #include <queue>	
@@ -9,7 +9,7 @@
 using std::cout;
 using std::endl;
 
-struct HierarchyTest {
+struct SkeletonTest {
 	struct Item {
 		std::string name;
 		int parent;
@@ -18,7 +18,7 @@ struct HierarchyTest {
 	std::vector<Item> flatten() const {
 		std::vector<Item> result;
 
-		std::queue<std::pair<HierarchyTest, int>> q;
+		std::queue<std::pair<SkeletonTest, int>> q;
 		q.push(std::make_pair(*this, -1));
 
 		while(!q.empty()) {
@@ -34,10 +34,10 @@ struct HierarchyTest {
 		return result;
 	}
 
-	HierarchyTest& operator[](std::size_t index) {
+	SkeletonTest& operator[](std::size_t index) {
 		assert(index < size());
 
-		std::queue<HierarchyTest*> queue;
+		std::queue<SkeletonTest*> queue;
 		queue.push(this);
 
 		while(queue.size() <= index) {
@@ -58,7 +58,7 @@ struct HierarchyTest {
 	}
 
 	std::string name;
-	std::vector<HierarchyTest> children;
+	std::vector<SkeletonTest> children;
 
 	// recursively computes size of the tree
 	std::size_t size() const {
@@ -73,7 +73,7 @@ struct HierarchyTest {
 ///////////////////////
 
 // the weak test just tests if the parent's ID is lower than children's, and that the children IDs don't overlap
-void weakTest(const openanim::Hierarchy& h) {
+void weakTest(const openanim::Skeleton& h) {
 	unsigned counter = 0, childId = 1;
 	for(auto& bone : h) {
 		BOOST_CHECK(bone.children().m_begin > counter);
@@ -90,7 +90,7 @@ void weakTest(const openanim::Hierarchy& h) {
 }
 
 // strong test tests for exact equivalence
-void strongTest(const openanim::Hierarchy& h, const HierarchyTest& test) {
+void strongTest(const openanim::Skeleton& h, const SkeletonTest& test) {
 	BOOST_CHECK(not h.empty());
 	BOOST_CHECK_EQUAL(h.size(), test.size());
 
@@ -116,14 +116,14 @@ void strongTest(const openanim::Hierarchy& h, const HierarchyTest& test) {
 	}
 }
 
-void doTest(const openanim::Hierarchy& h, const HierarchyTest& test) {
-	// cout << "HIERARCHY:" << endl;
+void doTest(const openanim::Skeleton& h, const SkeletonTest& test) {
+	// cout << "Skeleton:" << endl;
 	// for(unsigned ji=0; ji<h.size(); ++ji) {
-	// 	const openanim::Hierarchy::Joint& j = h[ji];
+	// 	const openanim::Skeleton::Joint& j = h[ji];
 	// 	cout << ji << ": " << j.name() << " (parent = " << j.m_parent << ", children=" << j.children().m_begin << "/" << j.children().m_end << ")  -  ";
 		
 	// 	for(unsigned ci=0; ci<j.children().size(); ++ci) {
-	// 		const openanim::Hierarchy::Joint& c = *(j.children().begin()+ci);
+	// 		const openanim::Skeleton::Joint& c = *(j.children().begin()+ci);
 	// 		cout << h.indexOf(c) << "/" << c.name() << "   ";
 	// 	}
 	// 	cout << endl;
@@ -148,17 +148,17 @@ void doTest(const openanim::Hierarchy& h, const HierarchyTest& test) {
 
 
 BOOST_AUTO_TEST_CASE(empty_properties) {
-	openanim::Hierarchy h;
+	openanim::Skeleton h;
 	BOOST_CHECK(h.empty());
 	BOOST_CHECK_EQUAL(h.size(), 0u);
 
-	openanim::Hierarchy h2(h);
+	openanim::Skeleton h2(h);
 	BOOST_CHECK(h2.empty());
 	BOOST_CHECK_EQUAL(h2.size(), 0u);
 }
 
 BOOST_AUTO_TEST_CASE(simple_chain_basic) {
-	openanim::Hierarchy h;
+	openanim::Skeleton h;
 
 	BOOST_CHECK(h.empty());
 	BOOST_CHECK_EQUAL(h.size(), 0u);
@@ -211,99 +211,99 @@ BOOST_AUTO_TEST_CASE(simple_chain_basic) {
 }
 
 BOOST_AUTO_TEST_CASE(simple_chain_test) {
-	openanim::Hierarchy h;
+	openanim::Skeleton h;
 
 	h.addRoot("first");
-	doTest(h, HierarchyTest{"first", {}});
+	doTest(h, SkeletonTest{"first", {}});
 
 	h.addRoot("second");
-	doTest(h, HierarchyTest{"second", {HierarchyTest{"first", {}}}});
+	doTest(h, SkeletonTest{"second", {SkeletonTest{"first", {}}}});
 
 	h.addRoot("third");
-	doTest(h, HierarchyTest{"third", {HierarchyTest{"second", {HierarchyTest{"first", {}}}}}});
+	doTest(h, SkeletonTest{"third", {SkeletonTest{"second", {SkeletonTest{"first", {}}}}}});
 }
 
 BOOST_AUTO_TEST_CASE(adding_children) {
-	openanim::Hierarchy h;
+	openanim::Skeleton h;
 
 	h.addRoot("root");
-	doTest(h, HierarchyTest{"root", {}});
+	doTest(h, SkeletonTest{"root", {}});
 
 	h.addChild(h[0], "first");
 	doTest(h, 
-		HierarchyTest{"root", {
-			HierarchyTest{"first", {}}
+		SkeletonTest{"root", {
+			SkeletonTest{"first", {}}
 		}}
 	);
 
 	h.addChild(h[0], "second");
 	doTest(h, 
-		HierarchyTest{"root", {
-			HierarchyTest{"first", {}}, 
-			HierarchyTest{"second", {}}
+		SkeletonTest{"root", {
+			SkeletonTest{"first", {}}, 
+			SkeletonTest{"second", {}}
 		}}
 	);
 
 	h.addChild(h[1], "first_a");
 	doTest(h, 
-		HierarchyTest{"root", {
-			HierarchyTest{"first", {
-				HierarchyTest{"first_a", {}}
+		SkeletonTest{"root", {
+			SkeletonTest{"first", {
+				SkeletonTest{"first_a", {}}
 			}}, 
-			HierarchyTest{"second", {}}
+			SkeletonTest{"second", {}}
 		}}
 	);
 
 	h.addChild(h[1], "first_b");
 	doTest(h, 
-		HierarchyTest{"root", {
-			HierarchyTest{"first", {
-				HierarchyTest{"first_a", {}},
-				HierarchyTest{"first_b", {}},
+		SkeletonTest{"root", {
+			SkeletonTest{"first", {
+				SkeletonTest{"first_a", {}},
+				SkeletonTest{"first_b", {}},
 			}}, 
-			HierarchyTest{"second", {}}
+			SkeletonTest{"second", {}}
 		}}
 	);
 
 	h.addChild(h[3], "first_aa");
 	doTest(h, 
-		HierarchyTest{"root", {
-			HierarchyTest{"first", {
-				HierarchyTest{"first_a", {
-					HierarchyTest{"first_aa", {}}
+		SkeletonTest{"root", {
+			SkeletonTest{"first", {
+				SkeletonTest{"first_a", {
+					SkeletonTest{"first_aa", {}}
 				}},
-				HierarchyTest{"first_b", {}},
+				SkeletonTest{"first_b", {}},
 			}}, 
-			HierarchyTest{"second", {}}
+			SkeletonTest{"second", {}}
 		}}
 	);
 
 	h.addChild(h[1], "first_c");
 	doTest(h, 
-		HierarchyTest{"root", {
-			HierarchyTest{"first", {
-				HierarchyTest{"first_a", {
-					HierarchyTest{"first_aa", {}}
+		SkeletonTest{"root", {
+			SkeletonTest{"first", {
+				SkeletonTest{"first_a", {
+					SkeletonTest{"first_aa", {}}
 				}},
-				HierarchyTest{"first_b", {}},
-				HierarchyTest{"first_c", {}},
+				SkeletonTest{"first_b", {}},
+				SkeletonTest{"first_c", {}},
 			}}, 
-			HierarchyTest{"second", {}}
+			SkeletonTest{"second", {}}
 		}}
 	);
 
 	h.addChild(h[2], "second_a");
 	doTest(h, 
-		HierarchyTest{"root", {
-			HierarchyTest{"first", {
-				HierarchyTest{"first_a", {
-					HierarchyTest{"first_aa", {}}
+		SkeletonTest{"root", {
+			SkeletonTest{"first", {
+				SkeletonTest{"first_a", {
+					SkeletonTest{"first_aa", {}}
 				}},
-				HierarchyTest{"first_b", {}},
-				HierarchyTest{"first_c", {}},
+				SkeletonTest{"first_b", {}},
+				SkeletonTest{"first_c", {}},
 			}}, 
-			HierarchyTest{"second", {
-				HierarchyTest{"second_a", {}}
+			SkeletonTest{"second", {
+				SkeletonTest{"second_a", {}}
 			}}
 		}}
 	);
@@ -314,9 +314,9 @@ BOOST_AUTO_TEST_CASE(randomized_children) {
 	// 100 tests
 	for(unsigned a=0;a<100;++a) {
 		// start with a single joint
-		HierarchyTest test{"root", {}};
+		SkeletonTest test{"root", {}};
 
-		openanim::Hierarchy h;
+		openanim::Skeleton h;
 		h.addRoot("root");
 
 		// max 30 joints
@@ -327,7 +327,7 @@ BOOST_AUTO_TEST_CASE(randomized_children) {
 
 			std::size_t index = rand() % test.size();
 
-			test[index].children.push_back(HierarchyTest{name.str(), {}});
+			test[index].children.push_back(SkeletonTest{name.str(), {}});
 			h.addChild(h[index], name.str());
 		}
 
