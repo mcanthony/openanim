@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <string>
+#include <memory>
 
 #include <boost/noncopyable.hpp>
 
@@ -62,12 +63,16 @@ class Skeleton {
 		iterator begin();
 		iterator end();
 
+		/// returns true if the poses between these two skeletons can be directly assigned (if they share the same hierarchy instance)
+		bool isCompatibleWith(const Skeleton& s) const;
+
 	protected:
 	private:
 		// exists only so I can return references to joints, not instances
 		std::vector<Joint> m_joints;
-		// stores the hierachy of joints
-		Hierarchy m_hierarchy;
+		// stores the hierachy of joints, shared between all "compatible" skeleton instances
+		// (instances whose poses can be directly assigned).
+		std::shared_ptr<Hierarchy> m_hierarchy;
 };
 
 }
