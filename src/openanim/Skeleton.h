@@ -5,7 +5,7 @@
 
 #include <boost/noncopyable.hpp>
 
-#include "Children.h"
+#include "Hierarchy.h"
 
 namespace openanim {
 
@@ -24,21 +24,17 @@ class Skeleton {
 				const std::string& name() const;
 				std::size_t index() const;
 
-				Children<Joint, Skeleton>& children();
-				const Children<Joint, Skeleton>& children() const;
+				Children<Joint, Skeleton> children();
+				const Children<Joint, Skeleton> children() const;
 
 				bool hasParent() const;
 				Joint& parent();
 				const Joint& parent() const;
 
 			private:
-				Joint(const std::string& name, int parent, const Children<Joint, Skeleton>& chld, Skeleton* hierarchy);
+				Joint(std::size_t id, Skeleton* skel);
 
-				std::string m_name;
-
-				int m_parent;
-				Children<Joint, Skeleton> m_children;
-
+				std::size_t m_id;
 				Skeleton* m_skeleton;
 
 			friend class Skeleton;
@@ -68,7 +64,10 @@ class Skeleton {
 
 	protected:
 	private:
+		// exists only so I can return references to joints, not instances
 		std::vector<Joint> m_joints;
+		// stores the hierachy of joints
+		Hierarchy m_hierarchy;
 };
 
 }

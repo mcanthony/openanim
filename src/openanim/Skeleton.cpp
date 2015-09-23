@@ -8,37 +8,49 @@ using std::endl;
 
 namespace openanim {
 
-Skeleton::Joint::Joint(const std::string& name, int parent, const Children<Joint, Skeleton>& chld, Skeleton* Skeleton) : m_name(name), m_parent(parent), m_children(chld), m_skeleton(Skeleton) {
+Skeleton::Joint::Joint(std::size_t id, Skeleton* skel) : m_id(id), m_skeleton(skel) {
 }
 
 const std::string& Skeleton::Joint::name() const {
-	return m_name;
+	assert(m_skeleton != NULL);
+	assert(m_id < m_skeleton->size());
+	return m_skeleton->m_hierarchy[m_id].name;
 }
 
 std::size_t Skeleton::Joint::index() const {
-	return m_skeleton->indexOf(*this);
+	return m_id;
 }
 
-Children<Skeleton::Joint, Skeleton>& Skeleton::Joint::children() {
-	return m_children;
+Children<Skeleton::Joint, Skeleton> Skeleton::Joint::children() {
+	assert(m_skeleton != NULL);
+	auto& j = m_skeleton->m_hierarchy[m_id];
+	return Children<Skeleton::Joint, Skeleton>(j.children_begin, j.children_end, *m_skeleton);
 }
 
-const Children<Skeleton::Joint, Skeleton>& Skeleton::Joint::children() const {
-	return m_children;
+const Children<Skeleton::Joint, Skeleton> Skeleton::Joint::children() const {
+	assert(m_skeleton != NULL);
+	auto& j = m_skeleton->m_hierarchy[m_id];
+	return Children<Skeleton::Joint, Skeleton>(j.children_begin, j.children_end, *m_skeleton);
 }
 
 bool Skeleton::Joint::hasParent() const {
-	return m_parent >= 0;
+	assert(m_skeleton != NULL);
+	assert(m_id < m_skeleton->size());
+	return m_skeleton->m_hierarchy[m_id].parent >= 0;
 }
 
 Skeleton::Joint& Skeleton::Joint::parent() {
+	assert(m_skeleton != NULL);
+	assert(m_id < m_skeleton->size());
 	assert(hasParent());
-	return (*m_skeleton)[m_parent];
+	return (*m_skeleton)[m_skeleton->m_hierarchy[m_id].parent];
 }
 
 const Skeleton::Joint& Skeleton::Joint::parent() const {
+	assert(m_skeleton != NULL);
+	assert(m_id < m_skeleton->size());
 	assert(hasParent());
-	return (*m_skeleton)[m_parent];
+	return (*m_skeleton)[m_skeleton->m_hierarchy[m_id].parent];
 }
 
 ////////
@@ -48,28 +60,28 @@ Skeleton::Skeleton() {
 
 Skeleton::Skeleton(const Skeleton& h) : m_joints(h.m_joints) {
 	for(auto& j : m_joints)
-		j.children().m_joints = this;
+		j.m_skeleton = this;
 }
 
 Skeleton& Skeleton::operator = (const Skeleton& h) {
 	m_joints = h.m_joints;
 
 	for(auto& j : m_joints)
-		j.children().m_joints = this;
+		j.m_skeleton = this;
 
 	return *this;
 }
 
 Skeleton::Skeleton(Skeleton&& h) : m_joints(std::move(h.m_joints)) {
 	for(auto& j : m_joints)
-		j.children().m_joints = this;
+		j.m_skeleton = this;
 }
 
 Skeleton& Skeleton::operator = (Skeleton&& h) {
 	m_joints = std::move(h.m_joints);
 
 	for(auto& j : m_joints)
-		j.children().m_joints = this;
+		j.m_skeleton = this;
 
 	return *this;
 }
@@ -99,62 +111,23 @@ std::size_t Skeleton::indexOf(const Joint& j) const {
 }
 
 void Skeleton::addRoot(const std::string& name) {
-	if(empty())
-		// create a single root joint, with children "behind the end"
-		m_joints.push_back(Joint(name, -1, Children<Joint, Skeleton>(1, 1, *this), this));
-	else {
-		// add a new joint at the beginning
-		m_joints.insert(m_joints.begin(), Joint(name, -1, Children<Joint, Skeleton>(1, 2, *this), this));
-		// and update the children indices of all following joints
-		for(auto it = m_joints.begin()+1; it != m_joints.end(); ++it) {
-			++it->children().m_begin;
-			++it->children().m_end;
+	// create a single root joint, with children "behind the end"
+	m_hierarchy.addRoot(name);
 
-			++it->m_parent;
-		}
-	}
+	// and just add a joint to the hierarchy - doesn't really matter where for now
+	m_joints.push_back(Joint(m_joints.size(), this));
 }
 
 std::size_t Skeleton::addChild(const Joint& j, const std::string& name) {
-	assert(j.children().m_joints == this && "input joint has to be part of the current Skeleton!");
+	assert(j.m_skeleton == this && "input joint has to be part of the current Skeleton!");
 
-	// find the joint's last child - the position we'll be inserting into
-	const std::size_t lastChild = j.children().m_end;
-	assert(lastChild > indexOf(j));
+	// add a child
+	std::size_t index = m_hierarchy.addChild(m_hierarchy[j.m_id], name);
 
-	// update all children indices larger than the inserted number
-	const std::size_t currentIndex = indexOf(j);
-	for(std::size_t ji = 0; ji < m_joints.size(); ++ji) {
-		Joint& i = m_joints[ji];
+	// and just add a joint to the hierarchy - doesn't really matter where for now
+	m_joints.push_back(Joint(m_joints.size(), this));
 
-		if(ji == currentIndex) {
-			// update the m_end of joint's children to include this new joint
-			++i.children().m_end;
-			assert(lastChild == i.children().m_end-1);
-		}
-		else if(i.children().m_begin > lastChild) {
-			++i.children().m_begin;
-			++i.children().m_end;
-		}
-		else if((i.children().m_begin == lastChild) && (ji > currentIndex)) {
-			++i.children().m_begin;
-			++i.children().m_end;
-		}
-
-		if(i.m_parent >= (int)lastChild)
-			++i.m_parent;
-	}
-
-	// figure out the new children position
-	unsigned childPos = lastChild+1;
-	while((childPos-1 < m_joints.size()) && (m_joints[childPos-1].m_parent <= (int)lastChild))
-		++childPos;
-
-	// and insert the joint
-	m_joints.insert(m_joints.begin() + lastChild, Joint(name, currentIndex, Children<Joint, Skeleton>(childPos, childPos, *this), this));
-
-	// and return the index of newly inserted joint
-	return lastChild;
+	return index;
 }
 
 Skeleton::const_iterator Skeleton::begin() const {

@@ -8,169 +8,96 @@ using std::endl;
 
 namespace openanim {
 
-Hierarchy::Joint::Joint(const std::string& name, int parent, const Children<Joint, Hierarchy>& chld, Hierarchy* hierarchy) : m_name(name), m_parent(parent), m_children(chld), m_hierarchy(hierarchy) {
-}
-
-const std::string& Hierarchy::Joint::name() const {
-	return m_name;
-}
-
-std::size_t Hierarchy::Joint::index() const {
-	return m_hierarchy->indexOf(*this);
-}
-
-Children<Hierarchy::Joint, Hierarchy>& Hierarchy::Joint::children() {
-	return m_children;
-}
-
-const Children<Hierarchy::Joint, Hierarchy>& Hierarchy::Joint::children() const {
-	return m_children;
-}
-
-bool Hierarchy::Joint::hasParent() const {
-	return m_parent >= 0;
-}
-
-Hierarchy::Joint& Hierarchy::Joint::parent() {
-	assert(hasParent());
-	return (*m_hierarchy)[m_parent];
-}
-
-const Hierarchy::Joint& Hierarchy::Joint::parent() const {
-	assert(hasParent());
-	return (*m_hierarchy)[m_parent];
-}
-
 ////////
 
-Hierarchy::Hierarchy() {
-}
-
-Hierarchy::Hierarchy(const Hierarchy& h) : m_joints(h.m_joints) {
-	for(auto& j : m_joints)
-		j.children().m_joints = this;
-}
-
-Hierarchy& Hierarchy::operator = (const Hierarchy& h) {
-	m_joints = h.m_joints;
-
-	for(auto& j : m_joints)
-		j.children().m_joints = this;
-
-	return *this;
-}
-
-Hierarchy::Hierarchy(Hierarchy&& h) : m_joints(std::move(h.m_joints)) {
-	for(auto& j : m_joints)
-		j.children().m_joints = this;
-}
-
-Hierarchy& Hierarchy::operator = (Hierarchy&& h) {
-	m_joints = std::move(h.m_joints);
-
-	for(auto& j : m_joints)
-		j.children().m_joints = this;
-
-	return *this;
-}
-
-Hierarchy::Joint& Hierarchy::operator[](std::size_t index) {
-	assert(index < m_joints.size());
-	return m_joints[index];
-}
-
-const Hierarchy::Joint& Hierarchy::operator[](std::size_t index) const {
-	assert(index < m_joints.size());
-	return m_joints[index];
+const Hierarchy::Item& Hierarchy::operator[](std::size_t index) const {
+	assert(index < m_items.size());
+	return m_items[index];
 }
 
 bool Hierarchy::empty() const {
-	return m_joints.empty();
+	return m_items.empty();
 }
 
 size_t Hierarchy::size() const {
-	return m_joints.size();
+	return m_items.size();
 }
 
-std::size_t Hierarchy::indexOf(const Joint& j) const {
-	assert(j.children().m_joints == this);
-
-	return (&j - &(*m_joints.begin()));
+std::size_t Hierarchy::indexOf(const Item& j) const {
+	return (&j - &(*m_items.begin()));
 }
 
 void Hierarchy::addRoot(const std::string& name) {
 	if(empty())
-		// create a single root joint, with children "behind the end"
-		m_joints.push_back(Joint(name, -1, Children<Joint, Hierarchy>(1, 1, *this), this));
+		// create a single root Item, with children "behind the end"
+		m_items.push_back(Item{name, -1, 1, 1});
 	else {
-		// add a new joint at the beginning
-		m_joints.insert(m_joints.begin(), Joint(name, -1, Children<Joint, Hierarchy>(1, 2, *this), this));
-		// and update the children indices of all following joints
-		for(auto it = m_joints.begin()+1; it != m_joints.end(); ++it) {
-			++it->children().m_begin;
-			++it->children().m_end;
+		// add a new Item at the beginning
+		m_items.insert(m_items.begin(), Item{name, -1, 1, 2});
+		// and update the children indices of all following Items
+		for(auto it = m_items.begin()+1; it != m_items.end(); ++it) {
+			++it->children_begin;
+			++it->children_end;
 
-			++it->m_parent;
+			++it->parent;
 		}
 	}
 }
 
-std::size_t Hierarchy::addChild(const Joint& j, const std::string& name) {
-	assert(j.children().m_joints == this && "input joint has to be part of the current hierarchy!");
-
-	// find the joint's last child - the position we'll be inserting into
-	const std::size_t lastChild = j.children().m_end;
+std::size_t Hierarchy::addChild(const Item& j, const std::string& name) {
+	// find the Item's last child - the position we'll be inserting into
+	const std::size_t lastChild = j.children_end;
 	assert(lastChild > indexOf(j));
 
 	// update all children indices larger than the inserted number
 	const std::size_t currentIndex = indexOf(j);
-	for(std::size_t ji = 0; ji < m_joints.size(); ++ji) {
-		Joint& i = m_joints[ji];
+	for(std::size_t ji = 0; ji < m_items.size(); ++ji) {
+		Item& i = m_items[ji];
 
 		if(ji == currentIndex) {
-			// update the m_end of joint's children to include this new joint
-			++i.children().m_end;
-			assert(lastChild == i.children().m_end-1);
+			// update the m_end of Item's children to include this new Item
+			++i.children_end;
+			assert(lastChild == i.children_end-1);
 		}
-		else if(i.children().m_begin > lastChild) {
-			++i.children().m_begin;
-			++i.children().m_end;
+		else if(i.children_begin > lastChild) {
+			++i.children_begin;
+			++i.children_end;
 		}
-		else if((i.children().m_begin == lastChild) && (ji > currentIndex)) {
-			++i.children().m_begin;
-			++i.children().m_end;
+		else if((i.children_begin == lastChild) && (ji > currentIndex)) {
+			++i.children_begin;
+			++i.children_end;
 		}
 
-		if(i.m_parent >= (int)lastChild)
-			++i.m_parent;
+		if(i.parent >= (int)lastChild)
+			++i.parent;
 	}
 
 	// figure out the new children position
 	unsigned childPos = lastChild+1;
-	while((childPos-1 < m_joints.size()) && (m_joints[childPos-1].m_parent <= (int)lastChild))
+	while((childPos-1 < m_items.size()) && (m_items[childPos-1].parent <= (int)lastChild))
 		++childPos;
 
-	// and insert the joint
-	m_joints.insert(m_joints.begin() + lastChild, Joint(name, currentIndex, Children<Joint, Hierarchy>(childPos, childPos, *this), this));
+	// and insert the Item
+	m_items.insert(m_items.begin() + lastChild, Item{name, (int)currentIndex, childPos, childPos});
 
-	// and return the index of newly inserted joint
+	// and return the index of newly inserted Item
 	return lastChild;
 }
 
 Hierarchy::const_iterator Hierarchy::begin() const {
-	return m_joints.begin();
+	return m_items.begin();
 }
 
 Hierarchy::const_iterator Hierarchy::end() const {
-	return m_joints.end();
+	return m_items.end();
 }
 
 Hierarchy::iterator Hierarchy::begin() {
-	return m_joints.begin();
+	return m_items.begin();
 }
 
 Hierarchy::iterator Hierarchy::end() {
-	return m_joints.end();
+	return m_items.end();
 }
 
 

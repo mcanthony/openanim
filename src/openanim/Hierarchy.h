@@ -15,64 +15,33 @@ namespace openanim {
 /// The internal representation of joint data might change in the future (the interface will probably not).
 class Hierarchy {
 	public:
-		class Joint;
-
-		typedef std::vector<Joint>::const_iterator const_iterator;
-		typedef std::vector<Joint>::iterator iterator;
-
-		/// a single joint and its children.
-		/// The joint instance behaves like an iterator - it is just a weak
-		/// reference to the Hierarchy structure and cannot exist on its own.
-		class Joint {
-			public:
-				const std::string& name() const;
-				std::size_t index() const;
-
-				Children<Joint, Hierarchy>& children();
-				const Children<Joint, Hierarchy>& children() const;
-
-				bool hasParent() const;
-				Joint& parent();
-				const Joint& parent() const;
-
-			private:
-				Joint(const std::string& name, int parent, const Children<Joint, Hierarchy>& chld, Hierarchy* hierarchy);
-
-				std::string m_name;
-
-				int m_parent;
-				Children<Joint, Hierarchy> m_children;
-
-				Hierarchy* m_hierarchy;
-
-			friend class Hierarchy;
+		struct Item {
+			std::string name;
+			int parent;
+			std::size_t children_begin, children_end;
 		};
 
-		Hierarchy();
-		Hierarchy(const Hierarchy& h);
-		Hierarchy& operator = (const Hierarchy& h);
-		Hierarchy(Hierarchy&& h);
-		Hierarchy& operator = (Hierarchy&& h);
-
-		Joint& operator[](std::size_t index);
-		const Joint& operator[](std::size_t index) const;
-		std::size_t indexOf(const Joint& j) const;
+		const Item& operator[](std::size_t index) const;
 
 		bool empty() const;
 		size_t size() const;
 
 		void addRoot(const std::string& name);
-		std::size_t addChild(const Joint& j, const std::string& name);
+		std::size_t addChild(const Item& i, const std::string& name);
 
+		typedef std::vector<Item>::const_iterator const_iterator;
 		const_iterator begin() const;
 		const_iterator end() const;
 
+		typedef std::vector<Item>::iterator iterator;
 		iterator begin();
 		iterator end();
 
 	protected:
 	private:
-		std::vector<Joint> m_joints;
+		std::size_t indexOf(const Item& j) const;
+
+		std::vector<Item> m_items;
 };
 
 }

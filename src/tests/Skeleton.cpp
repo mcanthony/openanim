@@ -83,7 +83,7 @@ void weakTest(const openanim::Skeleton& h) {
 
 		childId = bone.children().m_end;
 
-		BOOST_CHECK(bone.m_parent < (int)counter);
+		BOOST_CHECK((!bone.hasParent() && counter == 0) || (h.indexOf(bone.parent()) < counter));
 
 		++counter;
 	}
@@ -106,7 +106,7 @@ void strongTest(const openanim::Skeleton& h, const SkeletonTest& test) {
 	for(std::size_t a = 0; a < h.size(); ++a) {
 		BOOST_CHECK_EQUAL(h[a].name(), flat[a].name);
 		BOOST_CHECK_EQUAL(h[a].index(), a);
-		BOOST_CHECK_EQUAL(h[a].m_parent, flat[a].parent);
+		BOOST_CHECK((!h[a].hasParent() && flat[a].parent == -1) || (h.indexOf(h[a].parent()) == (std::size_t)flat[a].parent));
 
 		for(auto& c : h[a].children()) {
 			const std::size_t pi = h.indexOf(c.parent());
