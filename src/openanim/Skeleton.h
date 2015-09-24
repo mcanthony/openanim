@@ -7,6 +7,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "Hierarchy.h"
+#include "Transform.h"
 
 namespace openanim {
 
@@ -32,10 +33,14 @@ class Skeleton {
 				Joint& parent();
 				const Joint& parent() const;
 
+				Transform& tr();
+				const Transform& tr() const;
+
 			private:
-				Joint(std::size_t id, Skeleton* skel);
+				Joint(std::size_t id, const Transform& transform, Skeleton* skel);
 
 				std::size_t m_id;
+				Transform m_transformation;
 				Skeleton* m_skeleton;
 
 			friend class Skeleton;
@@ -54,8 +59,8 @@ class Skeleton {
 		bool empty() const;
 		size_t size() const;
 
-		void addRoot(const std::string& name);
-		std::size_t addChild(const Joint& j, const std::string& name);
+		void addRoot(const std::string& name, const Transform& tr);
+		std::size_t addChild(const Joint& j, const Transform& tr, const std::string& name);
 
 		const_iterator begin() const;
 		const_iterator end() const;

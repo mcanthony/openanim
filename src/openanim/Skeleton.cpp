@@ -8,7 +8,9 @@ using std::endl;
 
 namespace openanim {
 
-Skeleton::Joint::Joint(std::size_t id, Skeleton* skel) : m_id(id), m_skeleton(skel) {
+Skeleton::Joint::Joint(std::size_t id, const Transform& transform, Skeleton* skel) : 
+m_id(id), m_transformation(transform), m_skeleton(skel) 
+{
 }
 
 const std::string& Skeleton::Joint::name() const {
@@ -51,6 +53,14 @@ const Skeleton::Joint& Skeleton::Joint::parent() const {
 	assert(m_id < m_skeleton->size());
 	assert(hasParent());
 	return (*m_skeleton)[(*m_skeleton->m_hierarchy)[m_id].parent];
+}
+
+Transform& Skeleton::Joint::tr() {
+	return m_transformation;
+}
+
+const Transform& Skeleton::Joint::tr() const {
+	return m_transformation;
 }
 
 ////////
@@ -112,7 +122,7 @@ std::size_t Skeleton::indexOf(const Joint& j) const {
 	return (&j - &(*m_joints.begin()));
 }
 
-void Skeleton::addRoot(const std::string& name) {
+void Skeleton::addRoot(const std::string& name, const Transform& tr) {
 	// changing the hierarchy means the result is no longer compatible with other instances sharing the same
 	// hierarchy instance
 	m_hierarchy = std::shared_ptr<Hierarchy>(new Hierarchy(*m_hierarchy));
@@ -120,11 +130,15 @@ void Skeleton::addRoot(const std::string& name) {
 	// create a single root joint, with children "behind the end"
 	m_hierarchy->addRoot(name);
 
-	// and just add a joint to the hierarchy - doesn't really matter where for now
-	m_joints.push_back(Joint(m_joints.size(), this));
+	// and just add a joint to the hierarchy, updating all related joints
+	m_joints.insert(m_joints.begin(), Joint(0, tr, this));
+	for(auto it = m_joints.begin()+1; it != m_joints.end(); ++it)
+		++it->m_id;
+
+	assert(m_joints.size() == m_hierarchy->size());
 }
 
-std::size_t Skeleton::addChild(const Joint& j, const std::string& name) {
+std::size_t Skeleton::addChild(const Joint& j, const Transform& tr, const std::string& name) {
 	assert(j.m_skeleton == this && "input joint has to be part of the current Skeleton!");
 
 	// changing the hierarchy means the result is no longer compatible with other instances sharing the same
@@ -134,8 +148,12 @@ std::size_t Skeleton::addChild(const Joint& j, const std::string& name) {
 	// add a child
 	std::size_t index = m_hierarchy->addChild((*m_hierarchy)[j.m_id], name);
 
-	// and just add a joint to the hierarchy - doesn't really matter where for now
-	m_joints.push_back(Joint(m_joints.size(), this));
+	// and just add a joint to the hierarchy, updating all related joints
+	m_joints.insert(m_joints.begin()+index, Joint(index, tr, this));
+	for(auto it = m_joints.begin()+index+1; it != m_joints.end(); ++it)
+		++it->m_id;
+
+	assert(m_joints.size() == m_hierarchy->size());
 
 	return index;
 }

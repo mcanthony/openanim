@@ -9,6 +9,8 @@
 using std::cout;
 using std::endl;
 
+using openanim::Transform;
+
 struct SkeletonTest {
 	struct Item {
 		std::string name;
@@ -164,7 +166,7 @@ BOOST_AUTO_TEST_CASE(simple_chain_basic) {
 	BOOST_CHECK_EQUAL(h.size(), 0u);
 
 	// making simple straight chain
-	h.addRoot("first");
+	h.addRoot("first", Transform());
 	BOOST_CHECK(not h.empty());
 	BOOST_CHECK_EQUAL(h.size(), 1u);
 	BOOST_CHECK_EQUAL(h[0].name(), "first");
@@ -173,7 +175,7 @@ BOOST_AUTO_TEST_CASE(simple_chain_basic) {
 	BOOST_CHECK(not h[0].hasParent());
 	BOOST_CHECK(h[0].children().empty());
 
-	h.addRoot("second");
+	h.addRoot("second", Transform());
 	BOOST_CHECK(not h.empty());
 	BOOST_CHECK_EQUAL(h.size(), 2u);
 	BOOST_CHECK_EQUAL(h[0].name(), "second");
@@ -188,7 +190,7 @@ BOOST_AUTO_TEST_CASE(simple_chain_basic) {
 	BOOST_CHECK_EQUAL(h[1].children().size(), 0u);
 	BOOST_CHECK(h[1].children().empty());
 
-	h.addRoot("third");
+	h.addRoot("third", Transform());
 	BOOST_CHECK(not h.empty());
 	BOOST_CHECK_EQUAL(h.size(), 3u);
 	BOOST_CHECK_EQUAL(h[0].name(), "third");
@@ -213,30 +215,30 @@ BOOST_AUTO_TEST_CASE(simple_chain_basic) {
 BOOST_AUTO_TEST_CASE(simple_chain_test) {
 	openanim::Skeleton h;
 
-	h.addRoot("first");
+	h.addRoot("first", Transform());
 	doTest(h, SkeletonTest{"first", {}});
 
-	h.addRoot("second");
+	h.addRoot("second", Transform());
 	doTest(h, SkeletonTest{"second", {SkeletonTest{"first", {}}}});
 
-	h.addRoot("third");
+	h.addRoot("third", Transform());
 	doTest(h, SkeletonTest{"third", {SkeletonTest{"second", {SkeletonTest{"first", {}}}}}});
 }
 
 BOOST_AUTO_TEST_CASE(adding_children) {
 	openanim::Skeleton h;
 
-	h.addRoot("root");
+	h.addRoot("root", Transform());
 	doTest(h, SkeletonTest{"root", {}});
 
-	h.addChild(h[0], "first");
+	h.addChild(h[0], Transform(), "first");
 	doTest(h, 
 		SkeletonTest{"root", {
 			SkeletonTest{"first", {}}
 		}}
 	);
 
-	h.addChild(h[0], "second");
+	h.addChild(h[0], Transform(), "second");
 	doTest(h, 
 		SkeletonTest{"root", {
 			SkeletonTest{"first", {}}, 
@@ -244,7 +246,7 @@ BOOST_AUTO_TEST_CASE(adding_children) {
 		}}
 	);
 
-	h.addChild(h[1], "first_a");
+	h.addChild(h[1], Transform(), "first_a");
 	doTest(h, 
 		SkeletonTest{"root", {
 			SkeletonTest{"first", {
@@ -254,7 +256,7 @@ BOOST_AUTO_TEST_CASE(adding_children) {
 		}}
 	);
 
-	h.addChild(h[1], "first_b");
+	h.addChild(h[1], Transform(), "first_b");
 	doTest(h, 
 		SkeletonTest{"root", {
 			SkeletonTest{"first", {
@@ -265,7 +267,7 @@ BOOST_AUTO_TEST_CASE(adding_children) {
 		}}
 	);
 
-	h.addChild(h[3], "first_aa");
+	h.addChild(h[3], Transform(), "first_aa");
 	doTest(h, 
 		SkeletonTest{"root", {
 			SkeletonTest{"first", {
@@ -278,7 +280,7 @@ BOOST_AUTO_TEST_CASE(adding_children) {
 		}}
 	);
 
-	h.addChild(h[1], "first_c");
+	h.addChild(h[1], Transform(), "first_c");
 	doTest(h, 
 		SkeletonTest{"root", {
 			SkeletonTest{"first", {
@@ -292,7 +294,7 @@ BOOST_AUTO_TEST_CASE(adding_children) {
 		}}
 	);
 
-	h.addChild(h[2], "second_a");
+	h.addChild(h[2], Transform(), "second_a");
 	doTest(h, 
 		SkeletonTest{"root", {
 			SkeletonTest{"first", {
@@ -317,7 +319,7 @@ BOOST_AUTO_TEST_CASE(randomized_children) {
 		SkeletonTest test{"root", {}};
 
 		openanim::Skeleton h;
-		h.addRoot("root");
+		h.addRoot("root", Transform());
 
 		// max 30 joints
 		unsigned totalCount = rand()%80;
@@ -328,7 +330,7 @@ BOOST_AUTO_TEST_CASE(randomized_children) {
 			std::size_t index = rand() % test.size();
 
 			test[index].children.push_back(SkeletonTest{name.str(), {}});
-			h.addChild(h[index], name.str());
+			h.addChild(h[index], Transform(), name.str());
 		}
 
 		// and do the tests
