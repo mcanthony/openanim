@@ -21,7 +21,7 @@ add_definitions(-Wall -Werror -std=c++11)
 # DEPENDENCIES
 
 # looking for boost
-find_package(Boost REQUIRED COMPONENTS filesystem system serialization unit_test_framework program_options)
+find_package(Boost REQUIRED COMPONENTS filesystem system serialization unit_test_framework program_options regex)
 include_directories(${Boost_INCLUDE_DIR})
 set(LIBS ${LIBS} ${Boost_LIBRARIES})
 
