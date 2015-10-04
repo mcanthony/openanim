@@ -63,6 +63,14 @@ const Transform& Skeleton::Joint::tr() const {
 	return m_transformation;
 }
 
+Attributes& Skeleton::Joint::attributes() {
+	return m_skeleton->m_hierarchy->itemAttributes(m_id);
+}
+
+const Attributes& Skeleton::Joint::attributes() const {
+	return m_skeleton->m_hierarchy->itemAttributes(m_id);
+}
+
 ////////
 
 Skeleton::Skeleton() : m_hierarchy(new Hierarchy()) {
@@ -176,6 +184,14 @@ Skeleton::iterator Skeleton::end() {
 
 bool Skeleton::isCompatibleWith(const Skeleton& s) const {
 	return m_hierarchy == s.m_hierarchy;
+}
+
+Attributes& Skeleton::attributes() {
+	return m_hierarchy->attributes();
+}
+
+const Attributes& Skeleton::attributes() const {
+	return m_hierarchy->attributes();
 }
 
 }

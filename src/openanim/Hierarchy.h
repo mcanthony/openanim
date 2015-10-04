@@ -6,6 +6,7 @@
 #include <boost/noncopyable.hpp>
 
 #include "Children.h"
+#include "Attributes.h"
 
 namespace openanim {
 
@@ -15,14 +16,22 @@ namespace openanim {
 /// The internal representation of joint data might change in the future (the interface will probably not).
 class Hierarchy {
 	public:
-		struct Item {
-			std::string name;
-			int parent;
-			std::size_t children_begin, children_end;
+		class Item {
+			public:
+				Item(const std::string& name, int parent, std::size_t chld_begin, std::size_t chld_end);
+
+				std::string name;
+				int parent;
+				std::size_t children_begin, children_end;
+
+			private:
+				Attributes attrs;
+
+			friend class Hierarchy;
 		};
 
 		const Item& operator[](std::size_t index) const;
-
+	
 		bool empty() const;
 		size_t size() const;
 
@@ -33,15 +42,18 @@ class Hierarchy {
 		const_iterator begin() const;
 		const_iterator end() const;
 
-		typedef std::vector<Item>::iterator iterator;
-		iterator begin();
-		iterator end();
+		Attributes& attributes();
+		const Attributes& attributes() const;
+
+		Attributes& itemAttributes(std::size_t index);
+		const Attributes& itemAttributes(std::size_t index) const;
 
 	protected:
 	private:
 		std::size_t indexOf(const Item& j) const;
 
 		std::vector<Item> m_items;
+		Attributes m_attributes;
 };
 
 }

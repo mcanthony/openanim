@@ -10,6 +10,12 @@ namespace openanim {
 
 ////////
 
+Hierarchy::Item::Item(const std::string& n, int p, std::size_t chld_begin, std::size_t chld_end) :
+	name(n), parent(p), children_begin(chld_begin), children_end(chld_end) {
+}
+
+////////
+
 const Hierarchy::Item& Hierarchy::operator[](std::size_t index) const {
 	assert(index < m_items.size());
 	return m_items[index];
@@ -92,13 +98,22 @@ Hierarchy::const_iterator Hierarchy::end() const {
 	return m_items.end();
 }
 
-Hierarchy::iterator Hierarchy::begin() {
-	return m_items.begin();
+Attributes& Hierarchy::attributes() {
+	return m_attributes;
 }
 
-Hierarchy::iterator Hierarchy::end() {
-	return m_items.end();
+const Attributes& Hierarchy::attributes() const {
+	return m_attributes;
 }
 
+Attributes& Hierarchy::itemAttributes(std::size_t index) {
+	assert(index < m_items.size());
+	return m_items[index].attrs;
+}
+
+const Attributes& Hierarchy::itemAttributes(std::size_t index) const {
+	assert(index < m_items.size());
+	return m_items[index].attrs;
+}
 
 }

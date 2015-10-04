@@ -36,6 +36,11 @@ class Skeleton {
 				Transform& tr();
 				const Transform& tr() const;
 
+				/// returns joint attributes (shared between all hierarchy instances)
+				Attributes& attributes();
+				/// returns joint attributes (shared between all hierarchy instances)
+				const Attributes& attributes() const;
+
 			private:
 				Joint(std::size_t id, const Transform& transform, Skeleton* skel);
 
@@ -70,6 +75,11 @@ class Skeleton {
 
 		/// returns true if the poses between these two skeletons can be directly assigned (if they share the same hierarchy instance)
 		bool isCompatibleWith(const Skeleton& s) const;
+
+		/// returns hierarchy attributes (shared between skeleton instances)
+		Attributes& attributes();
+		/// returns hierarchy attributes (shared between skeleton instances)
+		const Attributes& attributes() const;
 
 	protected:
 	private:
