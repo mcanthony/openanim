@@ -6,6 +6,7 @@
 
 #include <boost/lexical_cast.hpp>
 #include <boost/regex.hpp>
+#include <boost/algorithm/string.hpp> 
 
 #include "Tokenizer.h"
 #include "Tokenizer.h"
@@ -75,8 +76,10 @@ namespace {
 
 	struct Joint {
 		std::string name;
-		Imath::V3f position, orientation, axis;
+		Imath::V3f position, axis;
 		int parent = -1;
+
+		Attributes attrs;
 	};
 
 
@@ -117,14 +120,22 @@ namespace {
 		// for now, just read whatever is required and skip it
 		tokenizer.next();
 
+		// the resulting joint value
 		Joint root;
 		root.name = "root";
+
+		// initialise the DOF field in joint attributes (might end up empty)
+		std::vector<std::string>& dofs = root.attrs["dof"].as<std::vector<std::string>>();
 
 		while(!tokenizer.current().value.empty() && tokenizer.current().value[0] != ':') {
 			if(tokenizer.current().value == "order") {
 				static const boost::regex value("(T|R)(X|Y|Z)");
-				while(boost::regex_match(tokenizer.next().value, value))
-					;
+				while(boost::regex_match(tokenizer.next().value, value)) {
+					std::string dof = tokenizer.current().value;
+					boost::algorithm::to_lower(dof);
+
+					dofs.push_back(dof);
+				}
 			}
 
 			else if(tokenizer.current().value == "axis") {
@@ -139,7 +150,7 @@ namespace {
 			}
 
 			else if(tokenizer.current().value == "orientation") {
-				root.orientation = readVec3(tokenizer);
+				root.axis = readVec3(tokenizer);
 				tokenizer.next();
 			}
 
@@ -153,7 +164,10 @@ namespace {
 	}
 
 	std::pair<Joint, unsigned> readJoint(AsfTokenizer& tokenizer) {
+		// the result - Joint and its ID
 		std::pair<Joint, unsigned>	result;
+		// initialise the DOF field in joint attributes (might end up empty)
+		std::vector<std::string>& dofs = result.first.attrs["dof"].as<std::vector<std::string>>();
 
 		// skip the begin token
 		tokenizer.next();
@@ -192,7 +206,7 @@ namespace {
 			else if(tokenizer.current().value == "dof") {
 				static const boost::regex value("r(x|y|z)");
 				while(boost::regex_match(tokenizer.next().value, value))
-					;
+					dofs.push_back(tokenizer.current().value);
 			}
 
 			else if(tokenizer.current().value == "limits") {
@@ -322,11 +336,16 @@ Skeleton loadASF(const boost::filesystem::path& path) {
 
 	// and, finally, transfer the information from joints to a Skeleton instance
 	Skeleton result;
+	result.attributes()["type"] = "asf";
 
 	for(const auto& j : joints) {
+		std::size_t index;
+
 		// root is simple
-		if(j.parent < 0)
+		if(j.parent < 0) {
 			result.addRoot(j.name, j.position);
+			index = 0;
+		}
 		
 		// non-roots require a search
 		else {
@@ -336,8 +355,10 @@ Skeleton loadASF(const boost::filesystem::path& path) {
 					parentJoint = ji;
 			assert(parentJoint >= 0);
 
-			result.addChild(result[parentJoint], j.position, j.name);
+			index = result.addChild(result[parentJoint], j.position, j.name);
 		}
+
+		result[index].attributes() = j.attrs;
 	}
 
 	return result;
